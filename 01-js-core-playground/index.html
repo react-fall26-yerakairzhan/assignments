@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JS Core Playground</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>JS Core Playground</h1>
+    <p>Closures · Call Stack · Promises · async/await · Event Loop</p>
+  </header>
+
+  <!-- Tabs: one button per topic, one panel per topic -->
+  <nav class="tabs">
+    <button class="tab is-active" data-tab="closures">Closures</button>
+    <button class="tab" data-tab="stack">Call Stack</button>
+    <button class="tab" data-tab="promises">Promises</button>
+    <button class="tab" data-tab="loop">Event Loop</button>
+  </nav>
+
+  <main>
+    <!-- ---------- CLOSURES ---------- -->
+    <section class="panel is-active" id="closures">
+      <h2>1. Closures</h2>
+      <p class="hint">A closure = function + the scope it was created in. Each counter keeps its own private <code>count</code>.</p>
+
+      <div class="row">
+        <button id="addCounter">+ New counter</button>
+        <button id="resetCounters" class="ghost">Reset all</button>
+      </div>
+      <div id="counters" class="cards"></div>
+
+      <h3>var vs let in a loop</h3>
+      <p class="hint">Same loop, different binding. <code>var</code> is function-scoped (one shared box), <code>let</code> is block-scoped (new box per iteration).</p>
+      <div class="row">
+        <button id="runVar">Run with var</button>
+        <button id="runLet">Run with let</button>
+      </div>
+      <pre id="loopOut" class="out"></pre>
+    </section>
+
+    <!-- ---------- CALL STACK ---------- -->
+    <section class="panel" id="stack">
+      <h2>2. Call Stack</h2>
+      <p class="hint">Synchronous calls push frames; returns pop them. LIFO.</p>
+
+      <div class="row">
+        <label>factorial(<input id="factN" type="number" value="4" min="1" max="10" />)</label>
+        <button id="runFact">Run</button>
+        <button id="blowStack" class="danger">Blow the stack</button>
+      </div>
+
+      <div class="split">
+        <div>
+          <h3>Stack</h3>
+          <div id="stackView" class="stack-view"></div>
+        </div>
+        <div>
+          <h3>Trace</h3>
+          <pre id="stackOut" class="out"></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- PROMISES / ASYNC-AWAIT ---------- -->
+    <section class="panel" id="promises">
+      <h2>3. Promises &amp; async/await</h2>
+      <p class="hint">A fake API that fails randomly, wrapped in retry + timeout.</p>
+
+      <div class="row">
+        <label>Fail chance <input id="failRate" type="range" min="0" max="100" value="50" /><span id="failRateVal">50%</span></label>
+      </div>
+      <div class="row">
+        <button id="fetchOne">fetch one (await + retry)</button>
+        <button id="fetchAll">Promise.all (3 users)</button>
+        <button id="fetchSettled">allSettled (3 users)</button>
+        <button id="fetchRace">race vs 300ms timeout</button>
+      </div>
+      <pre id="promOut" class="out"></pre>
+    </section>
+
+    <!-- ---------- EVENT LOOP ---------- -->
+    <section class="panel" id="loop">
+      <h2>4. Event Loop: tasks vs microtasks</h2>
+      <p class="hint">Guess the output order first, then run it. Rule: run sync code → drain <em>all</em> microtasks → take <em>one</em> macrotask → repeat.</p>
+
+      <div class="row">
+        <button id="runLoop">Run the classic snippet</button>
+        <button id="runStarve" class="ghost">Microtask starvation (5 levels)</button>
+      </div>
+
+      <div class="split">
+        <div>
+          <h3>Code</h3>
+<pre class="out code">console.log('1 sync start');
+
+setTimeout(() =&gt; console.log('2 macrotask: setTimeout 0'), 0);
+
+Promise.resolve()
+  .then(() =&gt; console.log('3 microtask: then A'))
+  .then(() =&gt; console.log('4 microtask: then B'));
+
+queueMicrotask(() =&gt; console.log('5 microtask: queueMicrotask'));
+
+console.log('6 sync end');</pre>
+        </div>
+        <div>
+          <h3>Actual output</h3>
+          <pre id="loopLog" class="out"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/utils.js"></script>
+  <script src="js/closures.js"></script>
+  <script src="js/callstack.js"></script>
+  <script src="js/promises.js"></script>
+  <script src="js/eventloop.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
