@@ -1,7 +1,8 @@
 // --- Event Loop: macrotasks vs microtasks --------------------------------
+// Rule: run sync code -> drain ALL microtasks -> take ONE macrotask -> repeat.
 
 // Expected order: 1, 6 (sync) -> 3, 5, 4 (microtasks) -> 2 (macrotask).
-// Microtasks drain completely before the loop picks up the next macrotask.
+// 5 beats 4 because `then B` is only queued once `then A` has run.
 function runEventLoopDemo() {
   const out = $('#loopLog');
   clear(out);
@@ -12,15 +13,15 @@ function runEventLoopDemo() {
 
   Promise.resolve()
     .then(() => log(out, '3 microtask: then A', 'ok'))
-    .then(() => log(out, '4 microtask: then B', 'ok')); // queued only after A runs
+    .then(() => log(out, '4 microtask: then B', 'ok'));
 
   queueMicrotask(() => log(out, '5 microtask: queueMicrotask', 'ok'));
 
   log(out, '6 sync end');
 }
 
-// Microtasks queued from microtasks run in the SAME drain — the setTimeout
-// below has to wait for all of them, even though it was scheduled first.
+// Microtasks queued from microtasks join the SAME drain, so the setTimeout
+// waits for all of them even though it was scheduled first.
 function runStarvationDemo() {
   const out = $('#loopLog');
   clear(out);
@@ -30,7 +31,7 @@ function runStarvationDemo() {
   let level = 0;
   const chain = () => {
     log(out, `microtask level ${++level}`, 'ok');
-    if (level < 5) queueMicrotask(chain); // re-queues before the macrotask gets a turn
+    if (level < 5) queueMicrotask(chain);
   };
   queueMicrotask(chain);
 

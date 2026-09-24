@@ -1,19 +1,19 @@
 // --- Promises & async/await ----------------------------------------------
 
-let failRate = 0.5; // 0..1, controlled by the slider
+let failRate = 0.5; // 0..1, set by the slider
 
 // Fake network call: resolves after a random delay, or rejects.
 function fetchUser(id) {
   return new Promise((resolve, reject) => {
-    const delay = 200 + Math.random() * 500;
+    const ms = Math.round(200 + Math.random() * 500);
     setTimeout(() => {
       if (Math.random() < failRate) reject(new Error(`user ${id}: network error`));
-      else resolve({ id, name: `User ${id}`, ms: Math.round(delay) });
-    }, delay);
+      else resolve({ id, name: `User ${id}`, ms });
+    }, ms);
   });
 }
 
-// await inside a loop = sequential retries, reads like sync code.
+// await inside a loop = sequential retries that read like sync code.
 async function fetchWithRetry(id, out, attempts = 3) {
   for (let i = 1; i <= attempts; i++) {
     try {
@@ -22,70 +22,59 @@ async function fetchWithRetry(id, out, attempts = 3) {
       return user;
     } catch (err) {
       log(out, `fail attempt ${i}: ${err.message}`, 'err');
-      if (i === attempts) throw err;     // out of tries -> propagate
-      await sleep(200 * i);              // simple backoff
+      if (i === attempts) throw err; // out of tries -> propagate
+      await sleep(200 * i);          // simple backoff
     }
   }
 }
 
 // Reject if the promise takes longer than `ms` — Promise.race in action.
-function withTimeout(promise, ms) {
-  const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms)
-  );
-  return Promise.race([promise, timeout]);
-}
+const withTimeout = (promise, ms) =>
+  Promise.race([
+    promise,
+    sleep(ms).then(() => Promise.reject(new Error(`timed out after ${ms}ms`))),
+  ]);
 
 function initPromises() {
   const out = $('#promOut');
-  const slider = $('#failRate');
+  const three = () => [fetchUser(1), fetchUser(2), fetchUser(3)];
 
-  slider.oninput = () => {
-    failRate = slider.value / 100;
-    $('#failRateVal').textContent = `${slider.value}%`;
-  };
-
-  $('#fetchOne').onclick = async () => {
+  // Wrap a demo: clear the log first, report any rejection at the end.
+  const demo = (note, fn) => async () => {
     clear(out);
+    log(out, note, 'dim');
     try {
-      await fetchWithRetry(1, out);
-    } catch (err) {
-      log(out, `gave up: ${err.message}`, 'err');
-    }
-  };
-
-  // all: parallel, but one rejection kills the whole thing.
-  $('#fetchAll').onclick = async () => {
-    clear(out);
-    log(out, 'Promise.all — fails fast if any one rejects', 'dim');
-    try {
-      const users = await Promise.all([fetchUser(1), fetchUser(2), fetchUser(3)]);
-      users.forEach((u) => log(out, `ok   ${u.name} (${u.ms}ms)`, 'ok'));
+      await fn();
     } catch (err) {
       log(out, `rejected: ${err.message}`, 'err');
     }
   };
 
+  $('#failRate').oninput = (e) => {
+    failRate = e.target.value / 100;
+    $('#failRateVal').textContent = `${e.target.value}%`;
+  };
+
+  $('#fetchOne').onclick = demo('await + retry, 3 attempts', () => fetchWithRetry(1, out));
+
+  // all: parallel, but one rejection kills the whole thing.
+  $('#fetchAll').onclick = demo('Promise.all — fails fast if any one rejects', async () => {
+    const users = await Promise.all(three());
+    users.forEach((u) => log(out, `ok   ${u.name} (${u.ms}ms)`, 'ok'));
+  });
+
   // allSettled: always resolves, you inspect each outcome.
-  $('#fetchSettled').onclick = async () => {
-    clear(out);
-    log(out, 'Promise.allSettled — never rejects', 'dim');
-    const results = await Promise.allSettled([fetchUser(1), fetchUser(2), fetchUser(3)]);
+  $('#fetchSettled').onclick = demo('Promise.allSettled — never rejects', async () => {
+    const results = await Promise.allSettled(three());
     results.forEach((r, i) =>
       r.status === 'fulfilled'
         ? log(out, `${i + 1} fulfilled: ${r.value.name}`, 'ok')
         : log(out, `${i + 1} rejected:  ${r.reason.message}`, 'err')
     );
-  };
+  });
 
-  $('#fetchRace').onclick = async () => {
-    clear(out);
-    log(out, 'Promise.race — request vs 300ms timer', 'dim');
-    try {
-      const user = await withTimeout(fetchUser(9), 300);
-      log(out, `ok   ${user.name} won the race (${user.ms}ms)`, 'ok');
-    } catch (err) {
-      log(out, `lost: ${err.message}`, 'err');
-    }
-  };
+  $('#fetchRace').onclick = demo('Promise.race — request vs 300ms timer', async () => {
+    const user = await withTimeout(fetchUser(9), 300);
+    log(out, `ok   ${user.name} won the race (${user.ms}ms)`, 'ok');
+  });
 }

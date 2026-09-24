@@ -1,16 +1,24 @@
-// Entry point: wire up tabs, then let each topic module set itself up.
+// Shared helpers + entry point.
 
-function initTabs() {
-  document.querySelectorAll('.tab').forEach((tab) => {
-    tab.onclick = () => {
-      document.querySelectorAll('.tab, .panel').forEach((el) => el.classList.remove('is-active'));
-      tab.classList.add('is-active');
-      document.getElementById(tab.dataset.tab).classList.add('is-active');
-    };
-  });
+const $ = (sel) => document.querySelector(sel);
+const clear = (el) => (el.textContent = '');
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)); // async building block
+
+// Append one line to a <pre> log box. `cls` colors it: 'ok' | 'err' | 'dim'.
+function log(el, text, cls = '') {
+  el.insertAdjacentHTML('beforeend', `<div class="${cls}">${text}</div>`);
+  el.scrollTop = el.scrollHeight;
 }
 
-initTabs();
+// Tabs: highlight the clicked one, show its panel.
+document.querySelectorAll('.tab').forEach((tab) => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab, .panel').forEach((el) => el.classList.remove('is-active'));
+    tab.classList.add('is-active');
+    $('#' + tab.dataset.tab).classList.add('is-active');
+  };
+});
+
 initClosures();
 initCallStack();
 initPromises();

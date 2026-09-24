@@ -1,19 +1,11 @@
 // --- Call Stack -----------------------------------------------------------
 
-// We can't read the real JS stack, so we record push/pop events while a
-// synchronous recursion runs, then replay them slowly to make it visible.
-function traceFactorial(n, events) {
-  events.push({ type: 'push', label: `factorial(${n})` });
-
-  if (n <= 1) {
-    events.push({ type: 'return', label: `factorial(1) -> 1` });
-    events.push({ type: 'pop' });
-    return 1;
-  }
-
-  const result = n * traceFactorial(n - 1, events); // nested call: deeper frame
-  events.push({ type: 'return', label: `factorial(${n}) -> ${result}` });
-  events.push({ type: 'pop' });
+// We can't read the real JS stack, so the recursion records its own
+// push/pop events synchronously; we replay them slowly to make it visible.
+function factorial(n, events) {
+  events.push(['push', `factorial(${n})`]);
+  const result = n <= 1 ? 1 : n * factorial(n - 1, events); // deeper frame
+  events.push(['pop', `factorial(${n}) -> ${result}`]);
   return result;
 }
 
@@ -23,37 +15,27 @@ async function replay(events) {
   view.innerHTML = '';
   clear(out);
 
-  for (const ev of events) {
-    if (ev.type === 'push') {
-      const frame = document.createElement('div');
-      frame.className = 'frame';
-      frame.textContent = ev.label;
-      view.appendChild(frame);
-      log(out, `push  ${ev.label}`);
-    } else if (ev.type === 'return') {
-      log(out, `      ${ev.label}`, 'ok');
-    } else {
-      view.lastElementChild?.remove();
-      log(out, `pop`, 'dim');
-    }
-    await sleep(350); // pause so the user can watch frames stack up
+  for (const [type, label] of events) {
+    if (type === 'push') view.insertAdjacentHTML('beforeend', `<div class="frame">${label}</div>`);
+    else view.lastElementChild.remove();
+    log(out, `${type.padEnd(4)} ${label}`, type === 'pop' ? 'ok' : '');
+    await sleep(350); // pause so the frames can be watched stacking up
   }
 }
 
 function initCallStack() {
   $('#runFact').onclick = () => {
-    const n = Number($('#factN').value);
     const events = [];
-    traceFactorial(n, events); // runs instantly, fills the script
-    replay(events);            // then we animate it
+    factorial(Number($('#factN').value), events); // runs instantly
+    replay(events);                               // then we animate it
   };
 
-  // Infinite recursion -> the engine throws RangeError instead of hanging.
+  // Infinite recursion throws RangeError instead of hanging: the stack is finite.
   $('#blowStack').onclick = () => {
     const out = $('#stackOut');
     clear(out);
     let depth = 0;
-    const recurse = () => { depth++; recurse(); };
+    const recurse = () => (depth++, recurse());
     try {
       recurse();
     } catch (err) {

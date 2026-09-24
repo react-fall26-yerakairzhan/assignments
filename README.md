@@ -14,12 +14,11 @@ python3 -m http.server 8777
 
 | File | Topic |
 |---|---|
-| `js/utils.js` | shared helpers (`$`, `log`, `sleep`) |
 | `js/closures.js` | counter factory (private state) + `var` vs `let` in a loop |
 | `js/callstack.js` | recursion traced and replayed as stack frames + stack overflow |
 | `js/promises.js` | fake API, retry with `await`, `all` / `allSettled` / `race` timeout |
 | `js/eventloop.js` | sync → microtasks → macrotask ordering + microtask starvation |
-| `js/app.js` | tab switching, init |
+| `js/app.js` | helpers (`$`, `log`, `sleep`), tab switching, init |
 
 ## Things to try
 
