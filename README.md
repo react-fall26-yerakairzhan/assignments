@@ -8,7 +8,11 @@ npm install
 npm run dev
 ```
 
+Live: https://react-fall26-yerakairzhan.github.io/assignments/practice4/
+
 `npm run build` puts a static site in `dist/` that works from any folder.
+The live site is that `dist/` folder copied into `practice4/` on the
+`gh-pages` branch.
 
 ## Fake API
 
